@@ -102,7 +102,7 @@ model {
   apiGateway -> statsService "Получение статистики"
   
   postsService -> messageBroker "События лайков, просмотров, комментариев" "Kafka"
-  statsService -> messageBroker "Обработка событий" "Kafka"
+  messageBroker -> statsService  "Обработка событий" "Kafka"
   usersService -> messageBroker "События регистрации, изменений профиля" "Kafka"
   
   usersService -> postgresUsers "Чтение/Запись" "SQL"
