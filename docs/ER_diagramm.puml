@@ -1,0 +1,108 @@
+@startuml "ER_Diagram"
+' На случай если в вскоде не запустит приклепляю картинку
+
+package "Users Service" #aliceblue {
+    entity "Users" as U #lightblue {
+      * user_id : int 
+      username : string
+      email : string
+      password_hash : string
+      created_at : datetime
+      status : string
+    }
+
+    entity "User Profiles" as UP #lightblue {
+      * profile_id : int
+      user_id : int
+      first_name : string
+      last_name : string
+      bio : string
+      avatar_url : string
+      updated_at : datetime
+    }
+
+    entity "User Sessions" as US #lightblue {
+      * session_id : int
+      user_id : int
+      session_token : string
+      device_info : string
+      ip_address : string
+      created_at : datetime
+      expires_at : datetime
+    }
+
+    U::user_id --> UP::user_id
+    U::user_id --> US::user_id
+}
+
+package "Posts Service" #honeydew {
+    entity "Posts" as P #lightgreen {
+      * post_id : int
+      user_id : int
+      title : string
+      content : string
+      created_at : datetime
+      updated_at : datetime
+      is_published : bool
+    }
+
+    entity "Comments" as C #lightgreen {
+      * comment_id : int
+      post_id : int
+      user_id : int
+      content : string
+      created_at : datetime
+      updated_at : datetime
+      parent_comment_id : int <<nullable>>
+    }
+
+    entity "Post Likes" as PL #lightgreen {
+      * like_id : int
+      post_id : int
+      user_id : int
+      created_at : datetime
+      reaction_type : string
+    }
+
+    P::post_id --> C::post_id
+    P::post_id --> PL::post_id
+    C::parent_comment_id --> C::comment_id
+}
+
+package "Statistics Service" #lightyellow {
+    entity "Statistics" as S #yellow {
+      * stat_id : int
+      stat_type : string
+      stat_date : datetime
+      info: string
+      aggregated_by : string
+      last_updated : datetime
+      
+    }
+
+    entity "Post Views" as PV #yellow {
+      * view_id : int
+      post_id : int
+      user_id : int
+      view_time : datetime
+      session_id : string
+      device_type : string
+    }
+
+    entity "User Likes" as UL #yellow {
+      * like_id : int
+      post_id : int
+      user_id : int
+      like_time : datetime
+      location : string
+      app_version : string
+    }
+
+    P::post_id --> PV::post_id
+    P::post_id --> UL::post_id
+}
+
+U::user_id --> P::user_id
+
+
+@enduml

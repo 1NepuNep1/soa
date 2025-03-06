@@ -1,0 +1,118 @@
+
+specification {
+  element softwareSystem
+  element container {
+    style {
+      icon https://en.m.wikipedia.org/wiki/File:Kubernetes_logo_without_workmark.svg
+    }
+  }
+  element pod {
+    style {
+      icon:tech:kubernetes
+    }
+  }
+}
+
+model {
+  ui = container "Web UI" {
+    description "Веб-интерфейс нашей социальной сети"
+    technology "React, TypeScript"
+    style {
+      icon:tech:react
+      color green
+      shape browser	
+    }
+  }
+  
+  socialNetwork = softwareSystem "Social Network" {
+    icon:tech:facebook
+
+    apiGateway = container "API Gateway" {
+      description "Принимает запросы и маршрутизирует их к нужным сервисам"
+      technology "Node.js, Express"
+      style {
+        icon:aws:api-gateway
+      }
+    }
+    
+    usersService = container "Сервис пользователей" {
+      description "Регистрация, аутентификация и хранение данных о пользователях"
+      technology "Go, gRPC" // не уверен если честно что так можно, надеюсь поправят на защите, в идеале го в большей части сервисов
+      style {
+        icon:azure:users
+      }
+    }
+    
+    postsService = container "Сервис постов и комментариев" {
+      description "Создание, редактирование, удаление постов и комментариев"
+      technology "Python, FastAPI"
+      style {
+        icon:azure:user-subscriptions
+      }
+    }
+    
+    statsService = container "Сервис статистики" {
+      description "Подсчет просмотров, лайков, комментариев"
+      technology "Python, FastAPI"
+      style {
+        icon:azure:user-settings
+      }
+    }
+    
+    messageBroker = container "Message Broker" {
+      description "Передача событий между сервисами"
+      technology "Kafka"
+      style {
+        shape queue
+        icon:tech:kafka
+      }
+    }
+
+    postgresUsers = container "PostgreSQL (Users)" {
+      description "Хранение данных пользователей и информации о регистрациях"
+      technology "Database"
+      style {
+        shape cylinder
+        icon:tech:postgresql
+      }
+    }
+
+    postgresPosts = container "PostgreSQL (Posts)" {
+      description "Хранение постов и комментариев"
+      technology "Database"
+      style {
+        shape cylinder
+        icon:tech:postgresql
+      }
+    }
+    
+    clickhouseStats = container "ClickHouse" {
+      description "Хранение статистики"
+      technology "Database"
+      style {
+        shape cylinder
+        icon https://raw.githubusercontent.com/ClickHouse/ClickHouse/refs/heads/master/docs/ru/images/logo.svg
+      }
+    }
+  }
+
+  ui -> apiGateway "Отправляет запросы" "HTTPS"
+  apiGateway -> usersService "Регистрация, аутентификация"
+  apiGateway -> postsService "Управление постами и комментариями"
+  apiGateway -> statsService "Получение статистики"
+  
+  postsService -> messageBroker "События лайков, просмотров, комментариев" "Kafka"
+  messageBroker -> statsService  "Обработка событий" "Kafka"
+  usersService -> messageBroker "События регистрации, изменений профиля" "Kafka"
+  
+  usersService -> postgresUsers "Чтение/Запись" "SQL"
+  postsService -> postgresPosts "Чтение/Запись" "SQL"
+  statsService -> clickhouseStats "Чтение/Запись" "SQL"
+}
+
+views {
+  view index {
+    include *
+  }
+}
+
