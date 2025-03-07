@@ -1,0 +1,164 @@
+openapi: 3.0.3
+info:
+  title: User Service API
+  description: REST API сервиса пользователей
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8000
+
+paths:
+  /register:
+    post:
+      summary: Регистрация нового пользователя
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - login
+                - password
+                - email
+              
+              properties:
+                login:
+                  type: string
+                  minLength: 3
+                  maxLength: 30
+                password:
+                  type: string
+                  minLength: 6
+                email:
+                  type: string
+                  format: email
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+        '400':
+          description: Неверные данные
+        '409':
+          description: Логин или email уже занят
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /auth:
+    post:
+      summary: Аутентификация пользователя
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - login
+                - password
+              properties:
+                login:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Успешная аутентификация
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Неверный логин или пароль
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /profile:
+    get:
+      summary: Получение данных профиля
+      tags:
+        - profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Данные профиля получены
+        '401':
+          description: Пользователь не авторизован
+        '500':
+          description: Внутренняя ошибка сервера
+
+    put:
+      summary: Обновление данных профиля
+      tags:
+        - profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                birthDate:
+                  type: string
+                  format: date
+                phoneNumber:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: Профиль успешно обновлён
+        '400':
+          description: Ошибка валидации
+        '401':
+          description: Пользователь не авторизован
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /profile/{id}:
+  get:
+    summary: Получение профиля другого пользователя по ID
+    tags:
+      - profile
+    security:
+      - bearerAuth: []
+    parameters:
+      - in: path
+        name: id
+        required: true
+        schema:
+          type: integer
+    responses:
+      '200':
+        description: Успешное получение профиля другого пользователя
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UserProfile'
+      '401':
+        description: Пользователь не авторизован
+      '404':
+        description: Профиль не найден
+      '500':
+        description: Внутренняя ошибка сервера
+
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
