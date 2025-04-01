@@ -7,9 +7,11 @@ import (
 	"postservice/database"
 	"postservice/handlers"
 	"postservice/models"
+	"postservice/rest"
 
 	pb "postservice/proto"
 
+	"github.com/gin-gonic/gin"
 	"google.golang.org/grpc"
 )
 
@@ -17,17 +19,24 @@ func main() {
 	database.ConnectDB()
 	database.DB.AutoMigrate(&models.Post{})
 
-	lis, err := net.Listen("tcp", ":"+os.Getenv("GRPC_PORT"))
-	if err != nil {
-		log.Fatalf("Failed to listen: %v", err)
-	}
+	go func() {
+		lis, err := net.Listen("tcp", os.Getenv("GRPC_SERVER_ADDR"))
+		if err != nil {
+			log.Fatalf("Failed to listen gRPC: %v", err)
+		}
 
-	s := grpc.NewServer()
+		s := grpc.NewServer()
+		pb.RegisterPostServiceServer(s, &handlers.Server{})
+		log.Println("gRPC server running on", os.Getenv("GRPC_SERVER_ADDR"))
+		if err := s.Serve(lis); err != nil {
+			log.Fatalf("Failed to serve gRPC: %v", err)
+		}
+	}()
 
-	pb.RegisterPostServiceServer(s, &handlers.Server{})
+	rest.InitGRPCClient()
+	router := gin.Default()
+	rest.RegisterRoutes(router)
 
-	log.Printf("gRPC server running on port :%s", os.Getenv("GRPC_PORT"))
-	if err := s.Serve(lis); err != nil {
-		log.Fatalf("Failed to serve: %v", err)
-	}
+	log.Println("REST server running on", os.Getenv("REST_SERVER_ADDR"))
+	router.Run(os.Getenv("REST_SERVER_ADDR"))
 }

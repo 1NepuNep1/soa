@@ -8,4 +8,5 @@ FROM alpine:latest
 WORKDIR /app
 COPY --from=builder /app/main .
 EXPOSE 50051
+EXPOSE 8081
 CMD ["./main"]
