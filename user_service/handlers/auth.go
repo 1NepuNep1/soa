@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"log"
 	"net/http"
 	"os"
 	"time"
@@ -100,6 +101,9 @@ func AuthHandler(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": "failed to generate token"})
 		return
 	}
+
+	c.SetCookie("token", tokenString, 3600*24*3, "/", "", false, true) // на 3 дня короч пока ставим куку
+	log.Println("Set coookie", tokenString)
 
 	session := models.Session{
 		UserID:    user.ID,
