@@ -7,8 +7,10 @@ services:
       - "8080:8080"
     environment:
       USER_SERVICE_URL: "http://user-service:8000"
+      POST_SERVICE_URL: "post-service:50051"
     depends_on:
       - user-service
+      - post-service
 
   user-service:
     build: ./user_service
@@ -21,7 +23,19 @@ services:
     depends_on:
       db:
         condition: service_healthy
-
+        
+  post-service:
+      build: ./post_service
+      container_name: post-service
+      restart: always
+      ports:
+        - "50051:50051"
+      env_file:
+        - ./post_service/.env
+      depends_on:
+        db:
+          condition: service_healthy
+    
   db:
     image: postgres:16-alpine
     container_name: postgres-db

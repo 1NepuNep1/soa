@@ -1,0 +1,300 @@
+openapi: 3.0.3
+info:
+  title: Post Service API
+  description: REST API сервиса постов
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8081
+
+paths:
+  /posts:
+    post:
+      summary: Создать новый пост
+      tags:
+        - posts
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - title
+                - description
+                - creatorId
+                - isPrivate
+              properties:
+                title:
+                  type: string
+                description:
+                  type: string
+                creatorId:
+                  type: integer
+                isPrivate:
+                  type: boolean
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '201':
+          description: Пост успешно создан
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  creatorId:
+                    type: integer
+                  isPrivate:
+                    type: boolean
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Неверные данные
+        '500':
+          description: Внутренняя ошибка сервера
+
+    get:
+      summary: Получить список постов (с пагинацией)
+      tags:
+        - posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: page
+          schema:
+            type: integer
+          description: Номер страницы (по умолчанию 1)
+        - in: query
+          name: pageSize
+          schema:
+            type: integer
+          description: Количество постов на странице (по умолчанию 10)
+        - in: query
+          name: requesterId
+          required: true
+          schema:
+            type: integer
+          description: ID запрашивающего пользователя
+      responses:
+        '200':
+          description: Список постов
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  posts:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        title:
+                          type: string
+                        description:
+                          type: string
+                        creatorId:
+                          type: integer
+                        isPrivate:
+                          type: boolean
+                        tags:
+                          type: array
+                          items:
+                            type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                        updatedAt:
+                          type: string
+                          format: date-time
+                  total:
+                    type: integer
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /posts/{id}:
+    get:
+      summary: Получить пост по ID
+      tags:
+        - posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID поста
+        - in: query
+          name: requesterId
+          required: true
+          schema:
+            type: integer
+          description: ID запрашивающего пользователя
+      responses:
+        '200':
+          description: Пост найден
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  creatorId:
+                    type: integer
+                  isPrivate:
+                    type: boolean
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '404':
+          description: Пост не найден
+        '500':
+          description: Внутренняя ошибка сервера
+
+    put:
+      summary: Обновить пост
+      tags:
+        - posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID поста
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - requesterId
+                - title
+                - description
+                - isPrivate
+              properties:
+                requesterId:
+                  type: integer
+                title:
+                  type: string
+                description:
+                  type: string
+                isPrivate:
+                  type: boolean
+                tags:
+                  type: array
+                  items:
+                    type: string
+      responses:
+        '200':
+          description: Пост успешно обновлён
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  id:
+                    type: integer
+                  title:
+                    type: string
+                  description:
+                    type: string
+                  creatorId:
+                    type: integer
+                  isPrivate:
+                    type: boolean
+                  tags:
+                    type: array
+                    items:
+                      type: string
+                  createdAt:
+                    type: string
+                    format: date-time
+                  updatedAt:
+                    type: string
+                    format: date-time
+        '400':
+          description: Неверные данные
+        '404':
+          description: Пост не найден
+        '500':
+          description: Внутренняя ошибка сервера
+
+    delete:
+      summary: Удалить пост
+      tags:
+        - posts
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema:
+            type: integer
+          description: ID поста
+        - in: query
+          name: requesterId
+          required: true
+          schema:
+            type: integer
+          description: ID запрашивающего пользователя
+      responses:
+        '200':
+          description: Пост успешно удалён
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+        '404':
+          description: Пост не найден
+        '500':
+          description: Внутренняя ошибка сервера
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
