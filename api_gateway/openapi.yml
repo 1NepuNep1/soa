@@ -1,0 +1,139 @@
+openapi: 3.0.3
+info:
+  title: API Gateway
+  description: Прокси-сервис, проксирующий запросы в сервис пользователей
+  version: 1.0.0
+
+servers:
+  - url: http://localhost:8080
+
+paths:
+  /register:
+    post:
+      summary: Регистрация нового пользователя
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - login
+                - password
+                - email
+              properties:
+                login:
+                  type: string
+                  minLength: 3
+                  maxLength: 30
+                password:
+                  type: string
+                  minLength: 6
+                email:
+                  type: string
+                  format: email
+      responses:
+        '201':
+          description: Пользователь успешно зарегистрирован
+        '400':
+          description: Неверные данные
+        '409':
+          description: Логин или email уже занят
+        '500':
+          description: Внутренняя ошибка сервера
+
+paths:
+  /auth:
+    post:
+      summary: Авторизация пользователя
+      tags:
+        - auth
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - login
+                - password
+              properties:
+                login:
+                  type: string
+                password:
+                  type: string
+      responses:
+        '200':
+          description: Успешная авторизация
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  token:
+                    type: string
+        '401':
+          description: Неверный логин или пароль
+        '500':
+          description: Внутренняя ошибка сервера
+
+  /profile:
+    get:
+      summary: Получение профиля текущего пользователя
+      tags:
+        - profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Успешное получение профиля
+        '401':
+          description: Не авторизован
+        '500':
+          description: Внутренняя ошибка сервера
+
+    put:
+      summary: Обновление профиля пользователя
+      tags:
+        - profile
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                firstName:
+                  type: string
+                lastName:
+                  type: string
+                birthDate:
+                  type: string
+                  format: date
+                phoneNumber:
+                  type: string
+                bio:
+                  type: string
+      responses:
+        '200':
+          description: Профиль успешно обновлён
+        '400':
+          description: Ошибка валидации
+        '401':
+          description: Пользователь не авторизован
+        '500':
+          description: Внутренняя ошибка сервера
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+
+servers:
+  - url: http://localhost:8080
