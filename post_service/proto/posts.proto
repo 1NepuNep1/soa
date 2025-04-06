@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+package proto;
+
+option go_package = "./proto";
+
+import "google/protobuf/timestamp.proto";
+
+service PostService {
+  rpc CreatePost(CreatePostRequest) returns (PostResponse);
+  rpc GetPostByID(GetPostByIDRequest) returns (PostResponse);
+  rpc UpdatePost(UpdatePostRequest) returns (PostResponse);
+  rpc DeletePost(DeletePostRequest) returns (DeletePostResponse);
+  rpc ListPosts(ListPostsRequest) returns (ListPostsResponse);
+}
+
+message Post {
+  uint32 id = 1;
+  string title = 2;
+  string description = 3;
+  uint32 creatorId = 4;
+  bool isPrivate = 5;
+  repeated string tags = 6;
+  google.protobuf.Timestamp createdAt = 7;
+  google.protobuf.Timestamp updatedAt = 8;
+}
+
+message PostResponse {
+  Post post = 1;
+}
+
+message CreatePostRequest {
+  string title = 1;
+  string description = 2;
+  uint32 creatorId = 3;
+  bool isPrivate = 4;
+  repeated string tags = 5;
+}
+
+message GetPostByIDRequest {
+  uint32 id = 1;
+  uint32 requesterId = 2;
+}
+
+message UpdatePostRequest {
+  uint32 id = 1;
+  uint32 requesterId = 2;
+  string title = 3;
+  string description = 4;
+  bool isPrivate = 5;
+  repeated string tags = 6;
+}
+
+message DeletePostRequest {
+  uint32 id = 1;
+  uint32 requesterId = 2;
+}
+
+message DeletePostResponse {
+  bool success = 1;
+}
+
+message ListPostsRequest {
+  uint32 page = 1;
+  uint32 pageSize = 2;
+  uint32 requesterId = 3;
+}
+
+message ListPostsResponse {
+  repeated Post posts = 1;
+  uint32 total = 2;
+}
