@@ -26,6 +26,10 @@ func setupTestDB() {
 	if err != nil {
 		panic("failed to migrate: " + err.Error())
 	}
+	err = database.DB.AutoMigrate(&models.Comment{})
+	if err != nil {
+		panic("failed to migrate: " + err.Error())
+	}
 }
 
 func setup() {
@@ -143,4 +147,69 @@ func TestListPosts(t *testing.T) {
 	assert.NoError(t, err)
 	assert.Equal(t, uint32(3), resp.Total)
 	assert.Len(t, resp.Posts, 3)
+}
+
+func TestLikePost(t *testing.T) {
+	setup()
+
+	created, _ := grpcHandler.CreatePost(context.Background(), &pb.CreatePostRequest{
+		Title:       "Like me",
+		Description: "like test",
+		CreatorId:   101,
+	})
+
+	resp, err := grpcHandler.LikePost(context.Background(), &pb.LikePostRequest{
+		PostId:   created.Post.Id,
+		ClientId: 555,
+	})
+
+	assert.NoError(t, err)
+	assert.True(t, resp.Success)
+}
+
+func TestViewTriggersAccess(t *testing.T) {
+	setup()
+
+	created, _ := grpcHandler.CreatePost(context.Background(), &pb.CreatePostRequest{
+		Title:       "View me",
+		Description: "visible to creator",
+		CreatorId:   42,
+		IsPrivate:   true,
+	})
+
+	resp, err := grpcHandler.GetPostByID(context.Background(), &pb.GetPostByIDRequest{
+		Id:          created.Post.Id,
+		RequesterId: 42,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, "View me", resp.Post.Title)
+}
+
+func TestCommentAndListComments(t *testing.T) {
+	setup()
+
+	created, _ := grpcHandler.CreatePost(context.Background(), &pb.CreatePostRequest{
+		Title:       "Discussion",
+		Description: "open for comments",
+		CreatorId:   7,
+	})
+
+	commentResp, err := grpcHandler.CommentPost(context.Background(), &pb.CommentPostRequest{
+		PostId:   created.Post.Id,
+		ClientId: 99,
+		Content:  "Great post!",
+	})
+	assert.NoError(t, err)
+	assert.True(t, commentResp.Success)
+
+	listResp, err := grpcHandler.ListComments(context.Background(), &pb.ListCommentsRequest{
+		PostId:   created.Post.Id,
+		Page:     1,
+		PageSize: 10,
+	})
+	assert.NoError(t, err)
+	assert.Equal(t, uint32(1), listResp.Total)
+	assert.Len(t, listResp.Comments, 1)
+	assert.Equal(t, "Great post!", listResp.Comments[0].Content)
+	assert.Equal(t, uint32(99), listResp.Comments[0].ClientId)
 }

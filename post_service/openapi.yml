@@ -292,6 +292,111 @@ paths:
         '500':
           description: Внутренняя ошибка сервера
 
+  /posts/{id}/like:
+    post:
+      summary: Like a post
+      operationId: likePost
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: clientId
+          in: query
+          required: true
+          schema:
+            type: integer
+      responses:
+        '200':
+          description: Post liked successfully
+        '400':
+          description: Invalid input
+        '404':
+          description: Post not found
+
+  /posts/{id}/comment:
+    post:
+      summary: Comment on a post
+      operationId: commentPost
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              required:
+                - clientId
+                - content
+              properties:
+                clientId:
+                  type: integer
+                content:
+                  type: string
+      responses:
+        '201':
+          description: Comment created
+        '400':
+          description: Invalid input
+        '404':
+          description: Post not found
+
+  /posts/{id}/comments:
+    get:
+      summary: List comments for a post
+      operationId: listComments
+      parameters:
+        - name: id
+          in: path
+          required: true
+          schema:
+            type: integer
+        - name: page
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 1
+        - name: pageSize
+          in: query
+          required: false
+          schema:
+            type: integer
+            default: 10
+      responses:
+        '200':
+          description: List of comments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  comments:
+                    type: array
+                    items:
+                      type: object
+                      properties:
+                        id:
+                          type: integer
+                        clientId:
+                          type: integer
+                        content:
+                          type: string
+                        createdAt:
+                          type: string
+                          format: date-time
+                  total:
+                    type: integer
+        '404':
+          description: Post not found
+
+
 components:
   securitySchemes:
     bearerAuth:

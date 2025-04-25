@@ -28,6 +28,9 @@ func RegisterRoutes(r *gin.Engine) {
 	r.PUT("/posts/:id", UpdatePost)
 	r.DELETE("/posts/:id", DeletePost)
 	r.GET("/posts", ListPosts)
+	r.POST("/posts/:id/like", LikePost)
+	r.POST("/posts/:id/comments", CommentPost)
+	r.GET("/posts/:id/comments", ListComments)
 }
 
 func CreatePost(c *gin.Context) {
@@ -58,6 +61,7 @@ func GetPostByID(c *gin.Context) {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
 		return
 	}
+
 	c.JSON(http.StatusOK, resp.Post)
 }
 
@@ -111,5 +115,62 @@ func ListPosts(c *gin.Context) {
 		return
 	}
 
+	c.JSON(http.StatusOK, resp)
+}
+
+func LikePost(c *gin.Context) {
+	postId, _ := strconv.Atoi(c.Param("id"))
+	clientId, _ := strconv.Atoi(c.Query("clientId"))
+
+	resp, err := grpcClient.LikePost(context.Background(), &pb.LikePostRequest{
+		PostId:   uint32(postId),
+		ClientId: uint32(clientId),
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": resp.Success})
+}
+
+func CommentPost(c *gin.Context) {
+	postId, _ := strconv.Atoi(c.Param("id"))
+	var body struct {
+		ClientId uint32 `json:"clientId"`
+		Content  string `json:"content"`
+	}
+	if err := c.ShouldBindJSON(&body); err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+
+	resp, err := grpcClient.CommentPost(context.Background(), &pb.CommentPostRequest{
+		PostId:   uint32(postId),
+		ClientId: body.ClientId,
+		Content:  body.Content,
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+
+	c.JSON(http.StatusOK, gin.H{"success": resp.Success})
+}
+
+func ListComments(c *gin.Context) {
+	postId, _ := strconv.Atoi(c.Param("id"))
+	page, _ := strconv.Atoi(c.DefaultQuery("page", "1"))
+	pageSize, _ := strconv.Atoi(c.DefaultQuery("pageSize", "10"))
+
+	resp, err := grpcClient.ListComments(context.Background(), &pb.ListCommentsRequest{
+		PostId:   uint32(postId),
+		Page:     uint32(page),
+		PageSize: uint32(pageSize),
+	})
+	if err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
 	c.JSON(http.StatusOK, resp)
 }
