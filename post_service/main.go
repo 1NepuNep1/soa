@@ -6,6 +6,7 @@ import (
 	"os"
 	"postservice/database"
 	"postservice/handlers"
+	"postservice/kafka"
 	"postservice/models"
 	"postservice/rest"
 
@@ -18,6 +19,9 @@ import (
 func main() {
 	database.ConnectDB()
 	database.DB.AutoMigrate(&models.Post{})
+	database.DB.AutoMigrate(&models.Comment{})
+
+	kafka.InitKafkaWriters()
 
 	go func() {
 		lis, err := net.Listen("tcp", os.Getenv("GRPC_SERVER_ADDR"))

@@ -5,6 +5,7 @@ import (
 	"errors"
 	"log"
 	"postservice/database"
+	"postservice/kafka"
 	"postservice/models"
 	pb "postservice/proto"
 
@@ -30,6 +31,8 @@ func (s *Server) CreatePost(ctx context.Context, req *pb.CreatePostRequest) (*pb
 		return nil, err
 	}
 
+	go kafka.SendClientRegistered(req.CreatorId)
+
 	return &pb.PostResponse{Post: convertModelToProto(post)}, nil
 }
 
@@ -46,6 +49,8 @@ func (s *Server) GetPostByID(ctx context.Context, req *pb.GetPostByIDRequest) (*
 	if post.IsPrivate && post.CreatorID != req.RequesterId {
 		return nil, errors.New("permission denied")
 	}
+
+	go kafka.SendInteractionEvent("post_viewed", req.RequesterId, req.Id)
 
 	return &pb.PostResponse{Post: convertModelToProto(post)}, nil
 }
@@ -139,4 +144,76 @@ func convertModelsToProtos(posts []models.Post) []*pb.Post {
 		protos[i] = convertModelToProto(p)
 	}
 	return protos
+}
+
+func (s *Server) LikePost(ctx context.Context, req *pb.LikePostRequest) (*pb.LikePostResponse, error) {
+	var post models.Post
+	err := database.DB.First(&post, req.PostId).Error
+	if errors.Is(err, gorm.ErrRecordNotFound) {
+		return &pb.LikePostResponse{Success: false}, errors.New("post not found")
+	} else if err != nil {
+		return &pb.LikePostResponse{Success: false}, err
+	}
+
+	// тут типа лайк короч
+
+	go kafka.SendInteractionEvent("post_liked", req.ClientId, req.PostId)
+
+	return &pb.LikePostResponse{Success: true}, nil
+}
+
+func (s *Server) CommentPost(ctx context.Context, req *pb.CommentPostRequest) (*pb.CommentPostResponse, error) {
+	var post models.Post
+	if err := database.DB.First(&post, req.PostId).Error; err != nil {
+		return &pb.CommentPostResponse{Success: false}, errors.New("post not found")
+	}
+
+	comment := models.Comment{
+		PostID:   req.PostId,
+		ClientID: req.ClientId,
+		Content:  req.Content,
+	}
+
+	if err := database.DB.Create(&comment).Error; err != nil {
+		return &pb.CommentPostResponse{Success: false}, err
+	}
+
+	go kafka.SendInteractionEvent("post_commented", req.ClientId, req.PostId)
+
+	return &pb.CommentPostResponse{Success: true}, nil
+}
+
+func (s *Server) ListComments(ctx context.Context, req *pb.ListCommentsRequest) (*pb.ListCommentsResponse, error) {
+	var comments []models.Comment
+	var total int64
+
+	database.DB.Model(&models.Comment{}).
+		Where("post_id = ?", req.PostId).
+		Count(&total)
+
+	err := database.DB.Where("post_id = ?", req.PostId).
+		Order("created_at DESC").
+		Offset(int((req.Page - 1) * req.PageSize)).
+		Limit(int(req.PageSize)).
+		Find(&comments).Error
+
+	if err != nil {
+		return nil, err
+	}
+
+	pbComments := make([]*pb.Comment, len(comments))
+	for i, c := range comments {
+		pbComments[i] = &pb.Comment{
+			Id:        uint32(c.ID),
+			PostId:    c.PostID,
+			ClientId:  c.ClientID,
+			Content:   c.Content,
+			CreatedAt: timestamppb.New(c.CreatedAt),
+		}
+	}
+
+	return &pb.ListCommentsResponse{
+		Comments: pbComments,
+		Total:    uint32(total),
+	}, nil
 }
