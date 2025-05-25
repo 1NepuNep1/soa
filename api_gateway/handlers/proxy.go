@@ -1,6 +1,7 @@
 package handlers
 
 import (
+	"fmt"
 	"net/http"
 	"net/http/httputil"
 	"net/url"
@@ -13,13 +14,19 @@ import (
 func ProxyHandler(c *gin.Context) {
 	var targetURL string
 
-	if strings.HasPrefix(c.Request.URL.Path, "/auth") ||
-		strings.HasPrefix(c.Request.URL.Path, "/register") ||
-		strings.HasPrefix(c.Request.URL.Path, "/profile") {
+	switch {
+	case strings.HasPrefix(c.Request.URL.Path, "/auth"),
+		strings.HasPrefix(c.Request.URL.Path, "/register"),
+		strings.HasPrefix(c.Request.URL.Path, "/profile"):
 		targetURL = os.Getenv("USER_SERVICE_URL")
-	} else if strings.HasPrefix(c.Request.URL.Path, "/posts") {
+
+	case strings.HasPrefix(c.Request.URL.Path, "/posts"):
 		targetURL = os.Getenv("POST_SERVICE_URL_HTTP")
-	} else {
+
+	case strings.HasPrefix(c.Request.URL.Path, "/stats"):
+		targetURL = os.Getenv("STATISTIC_SERVICE_URL")
+
+	default:
 		c.JSON(http.StatusBadGateway, gin.H{"error": "No service configured for this path"})
 		return
 	}
@@ -34,5 +41,12 @@ func ProxyHandler(c *gin.Context) {
 	proxy.FlushInterval = -1
 
 	c.Request.Host = target.Host
+
+	if userID, exists := c.Get("userID"); exists {
+		q := c.Request.URL.Query()
+		q.Set("clientId", fmt.Sprintf("%v", userID))
+		c.Request.URL.RawQuery = q.Encode()
+	}
+
 	proxy.ServeHTTP(c.Writer, c.Request)
 }

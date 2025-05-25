@@ -10,6 +10,7 @@ services:
     depends_on:
       - user-service
       - post-service
+      - statistic-service 
 
   user-service:
     build: ./user_service
@@ -37,6 +38,21 @@ services:
         condition: service_healthy
       kafka:
         condition: service_started
+
+  statistic-service:
+    build: ./statistic_service
+    container_name: statistic-service
+    restart: always
+    ports:
+      - "50052:50051"
+      - "8083:8082"
+    env_file:
+      - ./statistic_service/.env
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      kafka:
+        condition: service_started
     
   db:
     image: postgres:16-alpine
@@ -54,6 +70,25 @@ services:
       test: ["CMD-SHELL", "pg_isready -U postgres"]
       interval: 5s
       timeout: 5s
+      retries: 5
+
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.3
+    container_name: clickhouse
+    restart: always
+    ports:
+      - "9000:9000"
+      - "8123:8123"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 3s
       retries: 5
 
   zookeeper:
@@ -93,3 +128,4 @@ services:
 
 volumes:
   postgres_data:
+  clickhouse_data:

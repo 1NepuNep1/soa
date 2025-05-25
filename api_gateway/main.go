@@ -19,6 +19,9 @@ func main() {
 
 		public.POST("/register", handlers.ProxyHandler)
 		public.POST("/register/*proxyPath", handlers.ProxyHandler)
+
+		public.Any("/stats", handlers.ProxyHandler)
+		public.Any("/stats/*proxyPath", handlers.ProxyHandler)
 	}
 
 	protected := router.Group("/", handlers.AuthMiddleware())
