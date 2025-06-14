@@ -5,10 +5,12 @@ services:
     restart: always
     ports:
       - "8080:8080"
-    environment:
-      USER_SERVICE_URL: "http://user-service:8000"
+    env_file:
+      - ./api_gateway/.env
     depends_on:
       - user-service
+      - post-service
+      - statistic-service 
 
   user-service:
     build: ./user_service
@@ -21,7 +23,37 @@ services:
     depends_on:
       db:
         condition: service_healthy
+        
+  post-service:
+    build: ./post_service
+    container_name: post-service
+    restart: always
+    ports:
+      - "50051:50051"
+      - "8081:8081"
+    env_file:
+      - ./post_service/.env
+    depends_on:
+      db:
+        condition: service_healthy
+      kafka:
+        condition: service_started
 
+  statistic-service:
+    build: ./statistic_service
+    container_name: statistic-service
+    restart: always
+    ports:
+      - "50052:50051"
+      - "8083:8082"
+    env_file:
+      - ./statistic_service/.env
+    depends_on:
+      clickhouse:
+        condition: service_healthy
+      kafka:
+        condition: service_started
+    
   db:
     image: postgres:16-alpine
     container_name: postgres-db
@@ -40,5 +72,60 @@ services:
       timeout: 5s
       retries: 5
 
+  clickhouse:
+    image: clickhouse/clickhouse-server:23.3
+    container_name: clickhouse
+    restart: always
+    ports:
+      - "9000:9000"
+      - "8123:8123"
+    volumes:
+      - clickhouse_data:/var/lib/clickhouse
+    environment:
+      CLICKHOUSE_DB: default
+      CLICKHOUSE_USER: default
+      CLICKHOUSE_PASSWORD: ""
+    healthcheck:
+      test: ["CMD", "wget", "--spider", "-q", "http://localhost:8123/ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+  zookeeper:
+    image: confluentinc/cp-zookeeper:7.6.0
+    container_name: zookeeper
+    ports:
+      - "2181:2181"
+    environment:
+      ZOOKEEPER_CLIENT_PORT: 2181
+      ZOOKEEPER_TICK_TIME: 2000
+
+  kafka:
+    image: confluentinc/cp-kafka:7.6.0
+    container_name: kafka
+    ports:
+      - "9092:9092"
+    depends_on:
+      - zookeeper
+    environment:
+      KAFKA_AUTO_CREATE_TOPICS_ENABLE: "true"
+      KAFKA_BROKER_ID: 1
+      KAFKA_ZOOKEEPER_CONNECT: zookeeper:2181
+      KAFKA_ADVERTISED_LISTENERS: PLAINTEXT://kafka:9092
+      KAFKA_OFFSETS_TOPIC_REPLICATION_FACTOR: 1
+
+  kafka-ui:
+    image: provectuslabs/kafka-ui:latest
+    container_name: kafka-ui
+    ports:
+      - "8082:8080"
+    depends_on:
+      - kafka
+    environment:
+      KAFKA_CLUSTERS_0_NAME: local
+      KAFKA_CLUSTERS_0_BOOTSTRAPSERVERS: kafka:9092
+
+
 volumes:
   postgres_data:
+  clickhouse_data:

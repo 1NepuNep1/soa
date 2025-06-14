@@ -1,0 +1,72 @@
+syntax = "proto3";
+
+option go_package = "./proto";
+
+package proto;
+
+service StatisticsService {
+  // 1. Получение общей статистики по посту
+  rpc GetPostStats(GetPostStatsRequest) returns (GetPostStatsResponse);
+
+  // 2. Динамика просмотров по посту
+  rpc GetPostViewsDynamics(GetPostDynamicsRequest) returns (GetDynamicsResponse);
+
+  // 3. Динамика лайков по посту
+  rpc GetPostLikesDynamics(GetPostDynamicsRequest) returns (GetDynamicsResponse);
+
+  // 4. Динамика комментариев по посту
+  rpc GetPostCommentsDynamics(GetPostDynamicsRequest) returns (GetDynamicsResponse);
+
+  // 5. Топ-10 постов по лайкам/просмотрам/комментам
+  rpc GetTopPosts(GetTopRequest) returns (GetTopPostsResponse);
+
+  // 6. Топ-10 пользователей по лайкам/просмотрам/комментам
+  rpc GetTopUsers(GetTopRequest) returns (GetTopUsersResponse);
+}
+
+message GetPostStatsRequest {
+  uint32 post_id = 1;
+}
+message GetPostStatsResponse {
+  uint32 views = 1;
+  uint32 likes = 2;
+  uint32 comments = 3;
+}
+
+message GetPostDynamicsRequest {
+  uint32 post_id = 1;
+}
+
+message GetDynamicsResponse {
+  repeated DayCount data = 1;
+}
+
+message DayCount {
+  string date = 1; // YYYY-MM-DD
+  uint32 count = 2;
+}
+
+message GetTopRequest {
+  enum StatType {
+    VIEWS = 0;
+    LIKES = 1;
+    COMMENTS = 2;
+  }
+  StatType by = 1;
+}
+
+message GetTopPostsResponse {
+  repeated PostStat posts = 1;
+}
+message PostStat {
+  uint32 post_id = 1;
+  uint32 count = 2;
+}
+
+message GetTopUsersResponse {
+  repeated UserStat users = 1;
+}
+message UserStat {
+  uint32 user_id = 1;
+  uint32 count = 2;
+}
