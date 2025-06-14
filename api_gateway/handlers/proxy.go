@@ -1,23 +1,32 @@
 package handlers
 
 import (
+	"net/http"
 	"net/http/httputil"
 	"net/url"
 	"os"
+	"strings"
 
 	"github.com/gin-gonic/gin"
 )
 
 func ProxyHandler(c *gin.Context) {
-	targetURL := os.Getenv("USER_SERVICE_URL")
-	if targetURL == "" {
-		c.JSON(500, gin.H{"error": "User service URL not set"})
+	var targetURL string
+
+	if strings.HasPrefix(c.Request.URL.Path, "/auth") ||
+		strings.HasPrefix(c.Request.URL.Path, "/register") ||
+		strings.HasPrefix(c.Request.URL.Path, "/profile") {
+		targetURL = os.Getenv("USER_SERVICE_URL")
+	} else if strings.HasPrefix(c.Request.URL.Path, "/posts") {
+		targetURL = os.Getenv("POST_SERVICE_URL_HTTP")
+	} else {
+		c.JSON(http.StatusBadGateway, gin.H{"error": "No service configured for this path"})
 		return
 	}
 
 	target, err := url.Parse(targetURL)
 	if err != nil {
-		c.JSON(500, gin.H{"error": "Invalid target URL"})
+		c.JSON(http.StatusInternalServerError, gin.H{"error": "Invalid target URL"})
 		return
 	}
 
